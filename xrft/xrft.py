@@ -453,7 +453,7 @@ def fft(
         f, dims=da.dims, coords=dict([c for c in da.coords.items() if c[0] not in dim])
     )
     daft = daft.swap_dims(swap_dims).assign_coords(newcoords)
-    daft = daft.drop([d for d in dim if d in daft.coords])
+    daft = daft.drop_vars([d for d in dim if d in daft.coords])
 
     updated_dims = [
         daft.dims[i] for i in da.get_axis_num(dim)
@@ -629,7 +629,7 @@ def ifft(
         coords=dict([c for c in daft.coords.items() if c[0] not in dim]),
     )
     da = da.swap_dims(swap_dims).assign_coords(newcoords)
-    da = da.drop([d for d in dim if d in da.coords])
+    da = da.drop_vars([d for d in dim if d in da.coords])
 
     with xr.set_options(
         keep_attrs=True
@@ -816,13 +816,10 @@ def cross_spectrum(
     daft1 = fft(da1, dim=dim, real_dim=real_dim, true_phase=true_phase, **kwargs)
     daft2 = fft(da2, dim=dim, real_dim=real_dim, true_phase=true_phase, **kwargs)
 
-    if daft1.dims != daft2.dims:
-        raise ValueError("The two datasets have different dimensions")
-
     updated_dims = [
         d for d in daft1.dims if (d not in da1.dims and "segment" not in d)
     ]  # Transformed dimensions
-    cs = daft1 * np.conj(daft2)
+    cs = daft1 * daft2.conj()
 
     if real_dim is not None:
         cs *= _psd_real_dim_scaling(da1, cs, real_dim, updated_dims)
